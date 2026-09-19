@@ -1,0 +1,15 @@
+{
+  "name": "errsight-sdk",
+  "version": "1.0.0",
+  "description": "ErrSight error tracking SDK for JavaScript",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

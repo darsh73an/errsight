@@ -1,58 +1,58 @@
 import { Router } from 'express';
-import { ErrorGroup } from '../models/ErrorGroup';
-import { ErrorEvent } from '../models/ErrorEvent';
-import { authMiddleware } from '../middleware/auth';
+import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
+import { ErrorGroupModel } from '../models/ErrorGroup';
+import { ErrorEventModel } from '../models/ErrorEvent';
 
 const router = Router();
 
-router.use(authMiddleware);
+router.use(requireAuth);
 
-// GET /api/projects/:projectId/errors - list error groups
-router.get('/projects/:projectId/errors', async (req, res) => {
-  const { status, level, limit = 50, offset = 0 } = req.query;
-  
-  const where: any = { projectId: req.params.projectId };
-  
-  if (status) where.status = status;
-  if (level) where.level = level;
+// GET /api/projects/:projectId/errors
+router.get('/projects/:projectId/errors', async (req: AuthenticatedRequest, res) => {
+  try {
+    const { status, level, limit = 50, offset = 0 } = req.query;
+    
+    const groups = await ErrorGroupModel.findByProject(
+      req.params.projectId,
+      {
+        status: status as string,
+        level: level as string,
+        limit: parseInt(limit as string),
+        offset: parseInt(offset as string),
+      }
+    );
 
-  const groups = await ErrorGroup.findAll({
-    where,
-    order: [['lastSeen', 'DESC']],
-    limit: parseInt(limit as string),
-    offset: parseInt(offset as string),
-  });
-
-  res.json(groups);
+    res.json(groups);
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
-// GET /api/errors/:groupId - get single group with recent events
-router.get('/errors/:groupId', async (req, res) => {
-  const group = await ErrorGroup.findByPk(req.params.groupId);
-  
-  if (!group) {
-    return res.status(404).json({ error: 'Not found' });
+// GET /api/errors/:groupId
+router.get('/errors/:groupId', async (req: AuthenticatedRequest, res) => {
+  try {
+    const group = await ErrorGroupModel.findById(req.params.groupId);
+    
+    if (!group) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+
+    const events = await ErrorEventModel.findByGroup(req.params.groupId, 20);
+
+    res.json({ group, events });
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error' });
   }
-
-  const events = await ErrorEvent.findAll({
-    where: { groupId: req.params.groupId },
-    order: [['timestamp', 'DESC']],
-    limit: 20,
-  });
-
-  res.json({ group, events });
 });
 
-// POST /api/errors/:groupId/resolve - mark as resolved
-router.post('/errors/:groupId/resolve', async (req, res) => {
-  const group = await ErrorGroup.findByPk(req.params.groupId);
-  
-  if (!group) {
-    return res.status(404).json({ error: 'Not found' });
+// POST /api/errors/:groupId/resolve
+router.post('/errors/:groupId/resolve', async (req: AuthenticatedRequest, res) => {
+  try {
+    await ErrorGroupModel.updateStatus(req.params.groupId, 'resolved');
+    res.json({ success: true, status: 'resolved' });
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error' });
   }
-
-  await group.update({ status: 'resolved' });
-  res.json({ success: true, status: 'resolved' });
 });
 
 export default router;
