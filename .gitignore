@@ -1,0 +1,14 @@
+cd ~/Documents/errsight-final
+
+cat > .gitignore <<'EOF'
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+EOF
