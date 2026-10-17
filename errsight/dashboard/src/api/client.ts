@@ -28,7 +28,7 @@ function redirectToLogin(): void {
 }
 
 export const apiClient: AxiosInstance = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_URL || '/api',
 });
 
 // Attach the access token to every outgoing request automatically - no
@@ -102,7 +102,11 @@ apiClient.interceptors.response.use(
     try {
       // Plain axios, not apiClient - calling through apiClient here would
       // re-enter this same interceptor if the refresh call itself 401s.
-      const res = await axios.post('/api/auth/refresh', { refreshToken });
+      const res = await axios.post(
+        `${import.meta.env.VITE_API_URL || ''}/api/auth/refresh`,
+        { refreshToken }
+      );
+
       const { accessToken, refreshToken: newRefreshToken } = res.data;
       setTokens(accessToken, newRefreshToken);
 
